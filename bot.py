@@ -1,7 +1,7 @@
 import os
 import json
 import datetime
-from google import genai
+from groq import Groq
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -10,11 +10,11 @@ from telegram.ext import (
 
 # ── Config ──────────────────────────────────────────────────────────────────
 BOT_TOKEN  = os.environ["BOT_TOKEN"]
-GEMINI_KEY = os.environ["GEMINI_API_KEY"]
+GROQ_KEY   = os.environ["GROQ_API_KEY"]
 ADMIN_ID   = int(os.environ["ADMIN_TELEGRAM_ID"])
 STATS_FILE = "stats.json"
 
-client_gemini = genai.Client(api_key=GEMINI_KEY)
+groq_client = Groq(api_key=GROQ_KEY)
 
 # ── Stats helpers ────────────────────────────────────────────────────────────
 def load_stats() -> dict:
@@ -46,7 +46,7 @@ def increment_query(user_id: int):
         data["users"][uid]["queries"] += 1
         save_stats(data)
 
-# ── Gemini qida analizi ──────────────────────────────────────────────────────
+# ── Groq qida analizi ────────────────────────────────────────────────────────
 def analyse_food(text: str) -> str:
     prompt = f"""
 Sən qida analizi mütəxəssisisən. İstifadəçi aşağıdakı məlumatı göndərib:
@@ -67,11 +67,12 @@ Cavabı ANCAQ Azərbaycan dilində ver. Format belə olsun:
 
 Əgər göndərilən məlumat qida ilə bağlı deyilsə, nəzakətlə izah et.
 """
-    response = client_gemini.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=600
     )
-    return response.text
+    return response.choices[0].message.content
 
 # ── /start ───────────────────────────────────────────────────────────────────
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -90,7 +91,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "• Yemək adı yaz → kcal + makro dəyərlər alırsan\n"
         "• Miqdar qeyd edə bilərsən: `200q çörək`, `2 yumurta`\n"
         "• Hər hansı sual varsa yaz!\n\n"
-        "⚡ Bot Gemini AI ilə işləyir.",
+        "⚡ Bot Groq AI ilə işləyir.",
         parse_mode="Markdown"
     )
 

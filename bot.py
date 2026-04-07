@@ -68,7 +68,7 @@ Cavabı ANCAQ Azərbaycan dilində ver. Format belə olsun:
 Əgər göndərilən məlumat qida ilə bağlı deyilsə, nəzakətlə izah et.
 """
     response = client_gemini.models.generate_content(
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         contents=prompt
     )
     return response.text

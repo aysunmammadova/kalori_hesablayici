@@ -80,7 +80,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Salam! Mən Aysun Məmmədova tərəfindən yaradılmış **Kalori Botu**yam.\n\n"
         "İstənilən yemək, içki və ya məhsulun adını yaz — mən kcal və makro dəyərlərini hesablayacağam.\n\n"
-        "Məsələn: `100q toyuq döşü`, `bir boşqab plov`, `Coca-Cola 330ml`",
+        "Məsələn: `100q toyuq filesi`, `bir boşqab plov`, `Coca-Cola 330ml`",
         parse_mode="Markdown"
     )
 

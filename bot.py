@@ -1,7 +1,7 @@
 import os
 import json
 import datetime
-import anthropic
+import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -9,26 +9,26 @@ from telegram.ext import (
 )
 
 # ── Config ──────────────────────────────────────────────────────────────────
-BOT_TOKEN   = os.environ["BOT_TOKEN"]
-CLAUDE_KEY  = os.environ["ANTHROPIC_API_KEY"]
-ADMIN_ID    = int(os.environ["ADMIN_TELEGRAM_ID"])   # Sənin Telegram ID-n
-STATS_FILE  = "stats.json"
+BOT_TOKEN  = os.environ["BOT_TOKEN"]
+GEMINI_KEY = os.environ["GEMINI_API_KEY"]
+ADMIN_ID   = int(os.environ["ADMIN_TELEGRAM_ID"])
+STATS_FILE = "stats.json"
 
-client = anthropic.Anthropic(api_key=CLAUDE_KEY)
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ── Stats helpers ────────────────────────────────────────────────────────────
 def load_stats() -> dict:
     if os.path.exists(STATS_FILE):
         with open(STATS_FILE, "r") as f:
             return json.load(f)
-    return {"users": {}}          # {user_id: {name, username, start_date, queries}}
+    return {"users": {}}
 
 def save_stats(data: dict):
     with open(STATS_FILE, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def register_user(user):
-    """Yeni istifadəçini qeyd et."""
     data = load_stats()
     uid  = str(user.id)
     if uid not in data["users"]:
@@ -47,7 +47,7 @@ def increment_query(user_id: int):
         data["users"][uid]["queries"] += 1
         save_stats(data)
 
-# ── Claude kcal analizi ──────────────────────────────────────────────────────
+# ── Gemini qida analizi ──────────────────────────────────────────────────────
 def analyse_food(text: str) -> str:
     prompt = f"""
 Sən qida analizi mütəxəssisisən. İstifadəçi aşağıdakı məlumatı göndərib:
@@ -68,12 +68,8 @@ Cavabı ANCAQ Azərbaycan dilində ver. Format belə olsun:
 
 Əgər göndərilən məlumat qida ilə bağlı deyilsə, nəzakətlə izah et.
 """
-    msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=600,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return msg.content[0].text
+    response = model.generate_content(prompt)
+    return response.text
 
 # ── /start ───────────────────────────────────────────────────────────────────
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -91,8 +87,8 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "📌 **İstifadə qaydası:**\n\n"
         "• Yemək adı yaz → kcal + makro dəyərlər alırsan\n"
         "• Miqdar qeyd edə bilərsən: `200q çörək`, `2 yumurta`\n"
-        "• Şəkil göndərə bilərsən (yaxın gün dəstək əlavə ediləcək)\n\n"
-        "Hər hansı sual varsa yaz!",
+        "• Hər hansı sual varsa yaz!\n\n"
+        "⚡ Bot Gemini AI ilə işləyir.",
         parse_mode="Markdown"
     )
 
@@ -113,7 +109,7 @@ async def cmd_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# ── Callback-lar (admin düymələri) ────────────────────────────────────────────
+# ── Callback-lar ─────────────────────────────────────────────────────────────
 async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -141,7 +137,6 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             uname = f"@{u['username']}" if u['username'] else "—"
             date  = u['start_date'][:10]
             lines.append(f"{i}. {u['name']} ({uname})\n   ID: {uid} | Başlama: {date} | Sorğu: {u['queries']}")
-        # Telegram limit: 4096 simvol
         text = "\n".join(lines)
         if len(text) > 4000:
             text = text[:4000] + "\n...(davam edir)"
@@ -157,7 +152,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             lines.append(f"{i}. {u['name']} — {u['queries']} sorğu")
         await query.edit_message_text("\n".join(lines), parse_mode="Markdown")
 
-# ── Mətn mesajları → kcal analizi ────────────────────────────────────────────
+# ── Mətn mesajları ────────────────────────────────────────────────────────────
 async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     register_user(update.effective_user)
     user_text = update.message.text.strip()

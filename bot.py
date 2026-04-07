@@ -78,7 +78,7 @@ Cavabı ANCAQ Azərbaycan dilində ver. Format belə olsun:
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     register_user(update.effective_user)
     await update.message.reply_text(
-        "👋 Salam! Mən **Kalori Botu**yam.\n\n"
+        "👋 Salam! Mən Aysun Məmmədova tərəfindən yaradılmış **Kalori Botu**yam.\n\n"
         "İstənilən yemək, içki və ya məhsulun adını yaz — mən kcal və makro dəyərlərini hesablayacağam.\n\n"
         "Məsələn: `100q toyuq döşü`, `bir boşqab plov`, `Coca-Cola 330ml`",
         parse_mode="Markdown"

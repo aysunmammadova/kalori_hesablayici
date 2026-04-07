@@ -1,7 +1,7 @@
 import os
 import json
 import datetime
-import google.generativeai as genai
+from google import genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -14,8 +14,7 @@ GEMINI_KEY = os.environ["GEMINI_API_KEY"]
 ADMIN_ID   = int(os.environ["ADMIN_TELEGRAM_ID"])
 STATS_FILE = "stats.json"
 
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client_gemini = genai.Client(api_key=GEMINI_KEY)
 
 # ── Stats helpers ────────────────────────────────────────────────────────────
 def load_stats() -> dict:
@@ -68,7 +67,10 @@ Cavabı ANCAQ Azərbaycan dilində ver. Format belə olsun:
 
 Əgər göndərilən məlumat qida ilə bağlı deyilsə, nəzakətlə izah et.
 """
-    response = model.generate_content(prompt)
+    response = client_gemini.models.generate_content(
+        model="gemini-1.5-flash",
+        contents=prompt
+    )
     return response.text
 
 # ── /start ───────────────────────────────────────────────────────────────────
